@@ -2,10 +2,12 @@ import { questions } from "./questions.js";
 import { generateImage } from "./gemini.js";
 import "./style.css";
 
+// --- Gemini API Key（環境変数から取得） ---
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
+
 // --- ゲーム state ---
 let currentQuestionIndex = 0;
 let score = 0;
-let apiKey = "";
 let activeSentenceIndex = 0; // 0 = ぶん1, 1 = ぶん2
 let placedWords = [[], []]; // ぶん1, ぶん2 にならべた ことば
 let usedWordIndices = new Set(); // つかった ことばの index
@@ -21,7 +23,6 @@ const screens = {
 };
 
 const els = {
-  apiKeyInput: document.getElementById("api-key-input"),
   btnStart: document.getElementById("btn-start"),
   questionNumber: document.getElementById("question-number"),
   score: document.getElementById("score"),
@@ -62,15 +63,10 @@ function shuffle(arr) {
 
 // --- ゲーム スタート ---
 function startGame() {
-  apiKey = els.apiKeyInput.value.trim();
   if (!apiKey) {
-    els.apiKeyInput.classList.add("shake");
-    setTimeout(() => els.apiKeyInput.classList.remove("shake"), 500);
+    alert("VITE_GEMINI_API_KEY が せっていされていません。\n.env ファイルを かくにんしてね。");
     return;
   }
-
-  // API Keyをlocalstorageに保存
-  localStorage.setItem("gemini_api_key", apiKey);
 
   score = 0;
   currentQuestionIndex = 0;
@@ -316,12 +312,6 @@ els.btnRestart.addEventListener("click", () => {
   showScreen("title");
 });
 
-// API Keyの復元
-const savedKey = localStorage.getItem("gemini_api_key");
-if (savedKey) {
-  els.apiKeyInput.value = savedKey;
-}
-
 // ぶん きりかえ ボタン（タップでぶんを切り替え）
 els.sentenceLabel1.addEventListener("click", () => {
   activeSentenceIndex = 0;
@@ -332,7 +322,3 @@ els.sentenceLabel2.addEventListener("click", () => {
   updateActiveSentence();
 });
 
-// Enterキー でスタート
-els.apiKeyInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") startGame();
-});

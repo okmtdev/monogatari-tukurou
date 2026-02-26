@@ -35,7 +35,25 @@ cd monogatari-tukurou
 npm install
 ```
 
-### 3. 開発サーバーの起動
+### 3. Gemini API Key の設定
+
+`.env.example` をコピーして `.env` ファイルを作成し、API Key を設定してください。
+
+```bash
+cp .env.example .env
+```
+
+`.env` を編集:
+
+```
+VITE_GEMINI_API_KEY=your-gemini-api-key-here
+```
+
+API Key は [Google AI Studio](https://aistudio.google.com/apikey) から無料で取得できます。
+
+> **注意:** `.env` ファイルは `.gitignore` に含まれているため、リポジトリにはコミットされません。
+
+### 4. 開発サーバーの起動
 
 ```bash
 npm run dev
@@ -44,13 +62,6 @@ npm run dev
 ブラウザが自動で開きます（デフォルト: http://localhost:5173）。
 
 ファイルを編集するとホットリロードで即座に反映されます。
-
-### 4. Gemini API Key の設定
-
-ゲーム開始画面で Gemini API Key を入力してください。
-API Key は [Google AI Studio](https://aistudio.google.com/apikey) から無料で取得できます。
-
-> **注意:** API Key はブラウザの localStorage に保存されます。本番環境では適切なセキュリティ対策を検討してください。
 
 ## ビルド
 
@@ -107,6 +118,9 @@ gsutil web set -m index.html -e index.html gs://YOUR_BUCKET_NAME
 
 #### 5. ビルドとアップロード
 
+`.env` に `VITE_GEMINI_API_KEY` が設定されていることを確認してからビルドしてください。
+Vite はビルド時に環境変数をバンドルに埋め込みます。
+
 ```bash
 npm run build
 gsutil -m rsync -r -d dist/ gs://YOUR_BUCKET_NAME
@@ -159,6 +173,7 @@ gcloud compute forwarding-rules create YOUR_RULE_NAME \
 コードを変更した後の再デプロイは以下のコマンドだけで完了します。
 
 ```bash
+# .env に VITE_GEMINI_API_KEY が設定されていることを確認
 npm run build && gsutil -m rsync -r -d dist/ gs://YOUR_BUCKET_NAME
 ```
 
