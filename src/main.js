@@ -7,7 +7,6 @@ const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
 
 // --- ゲーム state ---
 let currentQuestionIndex = 0;
-let score = 0;
 let activeSentenceIndex = 0; // 0 = ぶん1, 1 = ぶん2
 let placedWords = [[], []]; // ぶん1, ぶん2 にならべた ことば
 let usedWordIndices = new Set(); // つかった ことばの index
@@ -25,7 +24,6 @@ const screens = {
 const els = {
   btnStart: document.getElementById("btn-start"),
   questionNumber: document.getElementById("question-number"),
-  score: document.getElementById("score"),
   hintBox: document.getElementById("hint-box"),
   sentence1: document.getElementById("sentence-1"),
   sentence2: document.getElementById("sentence-2"),
@@ -39,8 +37,6 @@ const els = {
   resultImage: document.getElementById("result-image"),
   btnDownload: document.getElementById("btn-download"),
   btnNext: document.getElementById("btn-next"),
-  finalScore: document.getElementById("final-score"),
-  endMessage: document.getElementById("end-message"),
   btnRestart: document.getElementById("btn-restart"),
 };
 
@@ -69,10 +65,8 @@ function startGame() {
     return;
   }
 
-  score = 0;
   currentQuestionIndex = 0;
   shuffledQuestions = shuffle(questions).slice(0, TOTAL_QUESTIONS);
-  els.score.textContent = "0";
   showScreen("game");
   loadQuestion();
 }
@@ -185,10 +179,6 @@ async function checkAnswer() {
   const sentence2 = placedWords[1].map((w) => w.word).join("");
   const fullSentence = sentence1 + " " + sentence2;
 
-  // スコア加算
-  score += 10;
-  els.score.textContent = score;
-
   // ローディング画面に文章を表示
   els.loadingSentence.textContent = fullSentence;
   showScreen("loading");
@@ -255,19 +245,6 @@ function nextQuestion() {
 
 // --- おわり がめん ---
 function showEndScreen() {
-  els.finalScore.textContent = score;
-
-  const maxScore = TOTAL_QUESTIONS * 10;
-  let message;
-  if (score === maxScore) {
-    message = "パーフェクト！ すごいね！";
-  } else if (score >= maxScore * 0.6) {
-    message = "よくできたね！";
-  } else {
-    message = "また あそぼうね！";
-  }
-  els.endMessage.textContent = message;
-
   showScreen("end");
 }
 
