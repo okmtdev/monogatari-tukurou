@@ -157,56 +157,36 @@ function removeWord(sentIdx, posIndex, wordIndex) {
   if (btn) btn.classList.remove("used");
 
   renderSentence(sentIdx);
-  els.btnCheck.disabled = true;
+  els.btnCheck.disabled = !(endsWithPeriod(placedWords[0]) && endsWithPeriod(placedWords[1]));
+}
+
+// --- ぶんの末尾が「。」で終わっているか ---
+function endsWithPeriod(words) {
+  if (words.length === 0) return false;
+  return words[words.length - 1].word.endsWith("。");
 }
 
 // --- ぶんの 完成チェック ---
 function checkCompletion() {
-  const q = shuffledQuestions[currentQuestionIndex];
-
-  // ぶん1が完成したら自動でぶん2に切り替え
-  if (activeSentenceIndex === 0 && placedWords[0].length >= q.sentences[0].length) {
+  // ぶん1が「。」で終わったら自動でぶん2に切り替え
+  if (activeSentenceIndex === 0 && endsWithPeriod(placedWords[0])) {
     activeSentenceIndex = 1;
     updateActiveSentence();
   }
 
-  // りょうほうの ぶんに ことばが あるか チェック
-  const totalPlaced = placedWords[0].length + placedWords[1].length;
-  const totalNeeded = q.sentences[0].length + q.sentences[1].length;
-  els.btnCheck.disabled = totalPlaced < totalNeeded;
+  // りょうほうの ぶんが「。」で終わっていれば かんせい
+  els.btnCheck.disabled = !(endsWithPeriod(placedWords[0]) && endsWithPeriod(placedWords[1]));
 }
 
-// --- こたえあわせ ---
+// --- かんせい → え を つくる ---
 async function checkAnswer() {
-  const q = shuffledQuestions[currentQuestionIndex];
-  const answer1 = placedWords[0].map((w) => w.word);
-  const answer2 = placedWords[1].map((w) => w.word);
-  const correct1 = q.sentences[0];
-  const correct2 = q.sentences[1];
+  const sentence1 = placedWords[0].map((w) => w.word).join("");
+  const sentence2 = placedWords[1].map((w) => w.word).join("");
+  const fullSentence = sentence1 + " " + sentence2;
 
-  const isCorrect =
-    JSON.stringify(answer1) === JSON.stringify(correct1) &&
-    JSON.stringify(answer2) === JSON.stringify(correct2);
-
-  if (!isCorrect) {
-    // まちがい アニメーション
-    document.querySelector(".sentence-area").classList.add("shake");
-    setTimeout(() => {
-      document.querySelector(".sentence-area").classList.remove("shake");
-    }, 500);
-
-    // どこがまちがいか表示
-    showIncorrectFeedback(answer1, correct1, 0);
-    showIncorrectFeedback(answer2, correct2, 1);
-    return;
-  }
-
-  // せいかい！
+  // スコア加算
   score += 10;
   els.score.textContent = score;
-
-  // 文章を生成
-  const fullSentence = correct1.join("") + " " + correct2.join("");
 
   // ローディング画面へ
   showScreen("loading");
@@ -218,19 +198,6 @@ async function checkAnswer() {
     console.error("Image generation error:", err);
     showResult(fullSentence, null, err.message);
   }
-}
-
-// --- まちがい フィードバック ---
-function showIncorrectFeedback(answer, correct, sentIdx) {
-  const container = sentIdx === 0 ? els.sentence1 : els.sentence2;
-  const words = container.querySelectorAll(".placed-word");
-
-  words.forEach((el, i) => {
-    if (i < correct.length && answer[i] !== correct[i]) {
-      el.classList.add("incorrect");
-      setTimeout(() => el.classList.remove("incorrect"), 1200);
-    }
-  });
 }
 
 // --- けっか ひょうじ ---
