@@ -1,0 +1,270 @@
+import { questions } from "./questions.js";
+import { generateImage } from "./gemini.js";
+import "./style.css";
+
+// --- Gemini API Key（環境変数から取得） ---
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
+
+// --- ゲーム state ---
+let currentQuestionIndex = 0;
+let activeSentenceIndex = 0; // 0 = ぶん1, 1 = ぶん2
+let placedWords = [[], []]; // ぶん1, ぶん2 にならべた ことば
+let usedWordIndices = new Set(); // つかった ことばの index
+let shuffledQuestions = [];
+
+// --- DOM ---
+const screens = {
+  title: document.getElementById("screen-title"),
+  game: document.getElementById("screen-game"),
+  loading: document.getElementById("screen-loading"),
+  result: document.getElementById("screen-result"),
+  end: document.getElementById("screen-end"),
+};
+
+const els = {
+  btnStart: document.getElementById("btn-start"),
+  questionNumber: document.getElementById("question-number"),
+  hintBox: document.getElementById("hint-box"),
+  sentence1: document.getElementById("sentence-1"),
+  sentence2: document.getElementById("sentence-2"),
+  sentenceLabel1: document.getElementById("sentence-label-1"),
+  sentenceLabel2: document.getElementById("sentence-label-2"),
+  wordChoices: document.getElementById("word-choices"),
+  btnReset: document.getElementById("btn-reset"),
+  btnCheck: document.getElementById("btn-check"),
+  loadingSentence: document.getElementById("loading-sentence"),
+  resultSentence: document.getElementById("result-sentence"),
+  resultImage: document.getElementById("result-image"),
+  btnDownload: document.getElementById("btn-download"),
+  btnNext: document.getElementById("btn-next"),
+  btnRestart: document.getElementById("btn-restart"),
+};
+
+const TOTAL_QUESTIONS = 5;
+
+// --- がめん きりかえ ---
+function showScreen(name) {
+  Object.values(screens).forEach((s) => s.classList.remove("active"));
+  screens[name].classList.add("active");
+}
+
+// --- しゃっふる ---
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// --- ゲーム スタート ---
+function startGame() {
+  if (!apiKey) {
+    alert("VITE_GEMINI_API_KEY が せっていされていません。\n.env ファイルを かくにんしてね。");
+    return;
+  }
+
+  currentQuestionIndex = 0;
+  shuffledQuestions = shuffle(questions).slice(0, TOTAL_QUESTIONS);
+  showScreen("game");
+  loadQuestion();
+}
+
+// --- もんだい よみこみ ---
+function loadQuestion() {
+  const q = shuffledQuestions[currentQuestionIndex];
+  activeSentenceIndex = 0;
+  placedWords = [[], []];
+  usedWordIndices = new Set();
+
+  els.questionNumber.textContent = `${currentQuestionIndex + 1} / ${TOTAL_QUESTIONS}`;
+  els.hintBox.textContent = `💡 ${q.hint}`;
+
+  // ぶんしょう スロット をクリア
+  els.sentence1.innerHTML = "";
+  els.sentence2.innerHTML = "";
+
+  // アクティブなぶんを強調
+  updateActiveSentence();
+
+  // ことば をシャッフルして表示
+  const shuffledWords = shuffle(q.words.map((w, i) => ({ word: w, index: i })));
+  els.wordChoices.innerHTML = "";
+  shuffledWords.forEach(({ word, index }) => {
+    const btn = document.createElement("button");
+    btn.className = "word-btn";
+    btn.textContent = word;
+    btn.dataset.wordIndex = index;
+    btn.addEventListener("click", () => onWordClick(index, word));
+    els.wordChoices.appendChild(btn);
+  });
+
+  els.btnCheck.disabled = true;
+}
+
+// --- アクティブな ぶんを 強調 ---
+function updateActiveSentence() {
+  els.sentenceLabel1.classList.toggle("active-label", activeSentenceIndex === 0);
+  els.sentenceLabel2.classList.toggle("active-label", activeSentenceIndex === 1);
+  els.sentence1.classList.toggle("active-sentence", activeSentenceIndex === 0);
+  els.sentence2.classList.toggle("active-sentence", activeSentenceIndex === 1);
+}
+
+// --- ことば クリック ---
+function onWordClick(wordIndex, word) {
+  if (usedWordIndices.has(wordIndex)) return;
+
+  usedWordIndices.add(wordIndex);
+  placedWords[activeSentenceIndex].push({ word, wordIndex });
+
+  // ことば ボタンを無効化
+  const btn = els.wordChoices.querySelector(`[data-word-index="${wordIndex}"]`);
+  if (btn) btn.classList.add("used");
+
+  // ぶんしょうエリアに表示
+  renderSentence(activeSentenceIndex);
+
+  // ぶんを チェック
+  checkCompletion();
+}
+
+// --- ぶんしょうスロットに ならべた ことばを表示 ---
+function renderSentence(sentIdx) {
+  const container = sentIdx === 0 ? els.sentence1 : els.sentence2;
+  container.innerHTML = "";
+
+  placedWords[sentIdx].forEach(({ word, wordIndex }, i) => {
+    const span = document.createElement("span");
+    span.className = "placed-word";
+    span.textContent = word;
+    span.addEventListener("click", () => removeWord(sentIdx, i, wordIndex));
+    container.appendChild(span);
+  });
+}
+
+// --- ことば をはずす ---
+function removeWord(sentIdx, posIndex, wordIndex) {
+  placedWords[sentIdx].splice(posIndex, 1);
+  usedWordIndices.delete(wordIndex);
+
+  const btn = els.wordChoices.querySelector(`[data-word-index="${wordIndex}"]`);
+  if (btn) btn.classList.remove("used");
+
+  renderSentence(sentIdx);
+  els.btnCheck.disabled = !(endsWithPeriod(placedWords[0]) && endsWithPeriod(placedWords[1]));
+}
+
+// --- ぶんの末尾が「。」で終わっているか ---
+function endsWithPeriod(words) {
+  if (words.length === 0) return false;
+  return words[words.length - 1].word.endsWith("。");
+}
+
+// --- ぶんの 完成チェック ---
+function checkCompletion() {
+  // ぶん1が「。」で終わったら自動でぶん2に切り替え
+  if (activeSentenceIndex === 0 && endsWithPeriod(placedWords[0])) {
+    activeSentenceIndex = 1;
+    updateActiveSentence();
+  }
+
+  // りょうほうの ぶんが「。」で終わっていれば かんせい
+  els.btnCheck.disabled = !(endsWithPeriod(placedWords[0]) && endsWithPeriod(placedWords[1]));
+}
+
+// --- かんせい → え を つくる ---
+async function checkAnswer() {
+  const sentence1 = placedWords[0].map((w) => w.word).join("");
+  const sentence2 = placedWords[1].map((w) => w.word).join("");
+  const fullSentence = sentence1 + " " + sentence2;
+
+  // ローディング画面に文章を表示
+  els.loadingSentence.textContent = fullSentence;
+  showScreen("loading");
+
+  try {
+    const imageDataUrl = await generateImage(fullSentence, apiKey);
+    showResult(fullSentence, imageDataUrl);
+  } catch (err) {
+    console.error("Image generation error:", err);
+    showResult(fullSentence, null, err.message);
+  }
+}
+
+// --- けっか ひょうじ ---
+function showResult(sentence, imageUrl, errorMessage) {
+  els.resultSentence.textContent = sentence;
+
+  if (imageUrl) {
+    els.resultImage.src = imageUrl;
+    els.resultImage.style.display = "block";
+    els.btnDownload.style.display = "inline-flex";
+    els.resultImage.dataset.sentence = sentence;
+  } else {
+    els.resultImage.style.display = "none";
+    els.btnDownload.style.display = "none";
+    if (errorMessage) {
+      const errP = document.createElement("p");
+      errP.className = "error-text";
+      errP.textContent = `えを つくれなかったよ: ${errorMessage}`;
+      els.resultSentence.after(errP);
+    }
+  }
+
+  showScreen("result");
+}
+
+// --- えを ダウンロード ---
+function downloadImage() {
+  const src = els.resultImage.src;
+  if (!src) return;
+
+  const link = document.createElement("a");
+  link.href = src;
+  link.download = `ものがたり_${currentQuestionIndex + 1}.png`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// --- つぎの もんだい ---
+function nextQuestion() {
+  // エラーメッセージがあれば消す
+  const errEl = document.querySelector(".error-text");
+  if (errEl) errEl.remove();
+
+  currentQuestionIndex++;
+  if (currentQuestionIndex >= TOTAL_QUESTIONS) {
+    showEndScreen();
+    return;
+  }
+  showScreen("game");
+  loadQuestion();
+}
+
+// --- おわり がめん ---
+function showEndScreen() {
+  showScreen("end");
+}
+
+// --- イベント ---
+els.btnStart.addEventListener("click", startGame);
+els.btnReset.addEventListener("click", loadQuestion);
+els.btnCheck.addEventListener("click", checkAnswer);
+els.btnDownload.addEventListener("click", downloadImage);
+els.btnNext.addEventListener("click", nextQuestion);
+els.btnRestart.addEventListener("click", () => {
+  showScreen("title");
+});
+
+// ぶん きりかえ ボタン（タップでぶんを切り替え）
+els.sentenceLabel1.addEventListener("click", () => {
+  activeSentenceIndex = 0;
+  updateActiveSentence();
+});
+els.sentenceLabel2.addEventListener("click", () => {
+  activeSentenceIndex = 1;
+  updateActiveSentence();
+});
+
