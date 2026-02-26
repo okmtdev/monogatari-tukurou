@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ものがたり つくろう！</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>" />
+  </head>
+  <body>
+    <!-- タイトル がめん -->
+    <div id="screen-title" class="screen active">
+      <div class="title-wrapper">
+        <div class="title-icon">📖</div>
+        <h1>ものがたり<br />つくろう！</h1>
+        <p class="subtitle">ことばを ならべて おはなしを つくってね</p>
+        <div class="api-key-section">
+          <label for="api-key-input">Gemini API Key</label>
+          <input
+            type="password"
+            id="api-key-input"
+            placeholder="API Key をいれてね"
+          />
+          <p class="api-key-note">
+            えを つくるために ひつようだよ
+          </p>
+        </div>
+        <button id="btn-start" class="btn-primary">はじめる</button>
+      </div>
+    </div>
+
+    <!-- ゲーム がめん -->
+    <div id="screen-game" class="screen">
+      <header class="game-header">
+        <div class="progress-info">
+          <span id="question-number"></span>
+        </div>
+        <div class="score-info">
+          <span class="star-icon">&#11088;</span>
+          <span id="score">0</span>
+        </div>
+      </header>
+
+      <div class="game-area">
+        <div id="hint-box" class="hint-box"></div>
+
+        <!-- ぶんしょう くみたて エリア -->
+        <div class="sentence-area">
+          <div class="sentence-label" id="sentence-label-1">ぶん 1</div>
+          <div id="sentence-1" class="sentence-slots"></div>
+          <div class="sentence-label" id="sentence-label-2">ぶん 2</div>
+          <div id="sentence-2" class="sentence-slots"></div>
+        </div>
+
+        <!-- ことば えらぶ エリア -->
+        <div class="words-label">ことばを えらんでね</div>
+        <div id="word-choices" class="word-choices"></div>
+
+        <div class="game-actions">
+          <button id="btn-reset" class="btn-secondary">やりなおす</button>
+          <button id="btn-check" class="btn-primary" disabled>
+            かんせい！
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- えを つくっている がめん -->
+    <div id="screen-loading" class="screen">
+      <div class="loading-wrapper">
+        <div class="loading-animation">
+          <div class="painting-canvas">
+            <div class="brush"></div>
+            <div class="paint-splash splash-1"></div>
+            <div class="paint-splash splash-2"></div>
+            <div class="paint-splash splash-3"></div>
+            <div class="paint-splash splash-4"></div>
+            <div class="paint-splash splash-5"></div>
+          </div>
+        </div>
+        <p class="loading-text">えを かいているよ...</p>
+        <div class="loading-dots">
+          <span class="dot"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- けっか がめん -->
+    <div id="screen-result" class="screen">
+      <div class="result-wrapper">
+        <h2 class="result-title">できあがり！</h2>
+        <div class="result-sentence" id="result-sentence"></div>
+        <div class="result-image-container">
+          <img id="result-image" alt="つくった おはなしの え" />
+        </div>
+        <div class="result-actions">
+          <button id="btn-download" class="btn-secondary">
+            &#128190; えを ほぞん
+          </button>
+          <button id="btn-next" class="btn-primary">つぎのもんだい</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- おわり がめん -->
+    <div id="screen-end" class="screen">
+      <div class="end-wrapper">
+        <div class="end-icon">&#127881;</div>
+        <h2>おしまい！</h2>
+        <p class="end-score">
+          <span class="star-icon">&#11088;</span>
+          <span id="final-score">0</span> てん
+        </p>
+        <p class="end-message" id="end-message"></p>
+        <button id="btn-restart" class="btn-primary">もういちど あそぶ</button>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
