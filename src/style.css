@@ -425,6 +425,19 @@ body {
   animation-delay: 2s;
 }
 
+.loading-sentence {
+  background: var(--color-card);
+  border-radius: var(--radius);
+  padding: 0.8rem 1.2rem;
+  font-size: 1.1rem;
+  line-height: 1.8;
+  box-shadow: var(--shadow-soft);
+  margin-bottom: 1.5rem;
+  color: var(--color-text);
+  max-width: 480px;
+  width: 100%;
+}
+
 .loading-text {
   font-size: 1.4rem;
   font-weight: bold;

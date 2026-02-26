@@ -34,6 +34,7 @@ const els = {
   wordChoices: document.getElementById("word-choices"),
   btnReset: document.getElementById("btn-reset"),
   btnCheck: document.getElementById("btn-check"),
+  loadingSentence: document.getElementById("loading-sentence"),
   resultSentence: document.getElementById("result-sentence"),
   resultImage: document.getElementById("result-image"),
   btnDownload: document.getElementById("btn-download"),
@@ -188,7 +189,8 @@ async function checkAnswer() {
   score += 10;
   els.score.textContent = score;
 
-  // ローディング画面へ
+  // ローディング画面に文章を表示
+  els.loadingSentence.textContent = fullSentence;
   showScreen("loading");
 
   try {
